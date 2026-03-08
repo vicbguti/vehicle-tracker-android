@@ -1,22 +1,31 @@
 package org.onebusaway.tracker.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TrackerScreen(
     onStart: (String, String) -> Unit,
     onStop: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    viewModel: TrackerViewModel = hiltViewModel()
 ) {
     var vehicleId by remember { mutableStateOf("vehicle-001") }
     var tripId by remember { mutableStateOf("route_1_1200") }
+    val isOffline by viewModel.isOffline.collectAsState()
     
     // Permission Handling
     val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
@@ -46,10 +55,34 @@ fun TrackerScreen(
         Column(
             modifier = Modifier
                 .padding(paddingValues)
-                .padding(16.dp)
                 .fillMaxWidth()
         ) {
-            Text(text = "Reporting Location", style = MaterialTheme.typography.titleMedium)
+            if (isOffline) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.Red)
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(Icons.Default.Warning, contentDescription = null, tint = Color.White)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Device Offline - Checking Connection...",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth()
+            ) {
+                Text(text = "Reporting Location", style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(16.dp))
             
             OutlinedTextField(
@@ -91,4 +124,5 @@ fun TrackerScreen(
             }
         }
     }
+}
 }

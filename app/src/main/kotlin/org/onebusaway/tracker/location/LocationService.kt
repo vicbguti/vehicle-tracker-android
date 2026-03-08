@@ -8,6 +8,7 @@ import com.google.android.gms.location.*
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
 import org.onebusaway.tracker.api.ApiService
+import org.onebusaway.tracker.utils.ConnectivityObserver
 import org.onebusaway.tracker.R
 import javax.inject.Inject
 
@@ -17,9 +18,14 @@ class LocationService : Service() {
     @Inject
     lateinit var apiService: ApiService
 
+    @Inject
+    lateinit var connectivityObserver: ConnectivityObserver
+
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
+
+    private var currentStatus: ConnectivityObserver.Status = ConnectivityObserver.Status.Unavailable
 
     // Hardcoded for skeleton - will be replaced by UI/Auth data
     private var vehicleId = "vehicle-001"
@@ -29,6 +35,13 @@ class LocationService : Service() {
         super.onCreate()
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         
+        serviceScope.launch {
+            connectivityObserver.observe().collect { status ->
+                currentStatus = status
+                android.util.Log.d("LocationService", "Network Status Changed: $status")
+            }
+        }
+
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
                 locationResult.locations.lastOrNull()?.let { location ->
@@ -39,6 +52,11 @@ class LocationService : Service() {
     }
 
     private fun sendLocationToServer(location: android.location.Location) {
+        if (currentStatus != ConnectivityObserver.Status.Available) {
+            android.util.Log.w("LocationService", "Skipping report: Network is $currentStatus")
+            return
+        }
+
         serviceScope.launch {
             try {
                 val report = org.onebusaway.tracker.api.LocationReport(
