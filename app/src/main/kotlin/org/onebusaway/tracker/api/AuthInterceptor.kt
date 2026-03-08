@@ -1,5 +1,6 @@
 package org.onebusaway.tracker.api
 
+import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.Response
 import org.onebusaway.tracker.data.SessionManager
@@ -15,6 +16,15 @@ class AuthInterceptor @Inject constructor(
             requestBuilder.addHeader("Authorization", "Bearer $token")
         }
 
-        return chain.proceed(requestBuilder.build())
+        val response = chain.proceed(requestBuilder.build())
+
+        if (response.code == 401) {
+            sessionManager.clearSession()
+            kotlinx.coroutines.runBlocking {
+                sessionManager.notifySessionExpired()
+            }
+        }
+
+        return response
     }
 }

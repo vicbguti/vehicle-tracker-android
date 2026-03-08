@@ -1,13 +1,21 @@
-package org.onebusaway.tracker.data
-
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
+sealed class SessionEvent {
+    object SessionExpired : SessionEvent()
+}
+
 @Singleton
 class SessionManager @Inject constructor(context: Context) {
+
+    private val _sessionEvents = MutableSharedFlow<SessionEvent>()
+    val sessionEvents: SharedFlow<SessionEvent> = _sessionEvents.asSharedFlow()
 
     private val masterKey = MasterKey.Builder(context)
         .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
@@ -35,6 +43,10 @@ class SessionManager @Inject constructor(context: Context) {
 
     fun isLoggedIn(): Boolean {
         return getAuthToken() != null
+    }
+
+    suspend fun notifySessionExpired() {
+        _sessionEvents.emit(SessionEvent.SessionExpired)
     }
 
     companion object {

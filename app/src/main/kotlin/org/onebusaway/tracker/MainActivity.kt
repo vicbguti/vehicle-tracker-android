@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import dagger.hilt.android.AndroidEntryPoint
+import org.onebusaway.tracker.data.SessionEvent
 import org.onebusaway.tracker.data.SessionManager
 import org.onebusaway.tracker.location.LocationService
 import org.onebusaway.tracker.ui.TrackerScreen
@@ -31,6 +32,14 @@ class MainActivity : ComponentActivity() {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     var isLoggedIn by remember { mutableStateOf(sessionManager.isLoggedIn()) }
+
+                    LaunchedEffect(Unit) {
+                        sessionManager.sessionEvents.collect { event ->
+                            if (event is SessionEvent.SessionExpired) {
+                                isLoggedIn = false
+                            }
+                        }
+                    }
 
                     if (isLoggedIn) {
                         TrackerScreen(
